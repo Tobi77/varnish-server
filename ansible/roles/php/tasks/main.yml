@@ -1,0 +1,46 @@
+---
+- name: Add ppa Repository
+  sudo: yes
+  apt_repository: repo=ppa:ondrej/{{ php.ppa }}
+
+- name: Update apt
+  sudo: yes
+  apt: update_cache=yes
+
+- name: Install php72
+  sudo: yes
+  apt: pkg=php7.2 state=latest
+
+- name: Install php7.2-fpm
+  sudo: yes
+  apt: pkg=php7.2-fpm state=latest
+
+- name: Install PHP Packages
+  sudo: yes
+  apt: pkg={{ item }} state=latest
+  with_items: "{{php.packages}}"
+  when: php.packages is defined
+
+- name: Set date.timezone for CLI
+  become: true
+  lineinfile:
+    dest: /etc/php/7.2/cli/php.ini
+    regexp: "date.timezone ="
+    line: "date.timezone = Europe/Berlin"
+
+- name: Set date.timezone for apache php
+  become: true
+  lineinfile:
+    dest: /etc/php/7.2/apache2/php.ini
+    regexp: "date.timezone ="
+    line: "date.timezone = Europe/Berlin"
+
+- name: Set cacert pem
+  become: true
+  lineinfile:
+    dest: /etc/php/7.2/apache2/php.ini
+    regexp: ";curl.cainfo ="
+    line: "curl.cainfo = /home/vagrant/cacert.pem"
+
+- include: configure.yml
+- include: pecl.yml

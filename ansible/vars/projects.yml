@@ -1,0 +1,11 @@
+---
+projects_active:
+    - servername: "www.test-box.local"
+      serveradmin: "admin@example.com"
+      documentroot: "www.test-box.local/htdocs"
+      database: "test_typo3"
+projects_nonactive:
+    - servername: "vhost3.example.com"
+      serveradmin: "admin@example.com"
+      documentroot: "vhost3.example.com"
+

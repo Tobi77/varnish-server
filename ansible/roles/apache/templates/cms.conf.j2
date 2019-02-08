@@ -1,0 +1,43 @@
+<VirtualHost *:80>
+    ServerName www.test-box.local
+    DocumentRoot "/vagrant/www/www.test-box.local/htdocs"
+
+    <Directory "/vagrant/www/www.test-box.local/htdocs">
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog /vagrant/logs/apache2/www.test-box.local-error.log
+    CustomLog /vagrant/logs/apache2/www.test-box.local-access.log common
+    ServerSignature Off
+
+    SetEnv APPLICATION_ENV vagrant
+    SetEnv TYPO3_CONTEXT Development
+
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName www.test-box.local
+    DocumentRoot "/vagrant/www/www.test-box.local/htdocs"
+
+    <Directory "/vagrant/www/www.test-box.local/htdocs">
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # SSL
+    SSLEngine on
+    #SSLCertificateChainFile /home/vagrant/ssl/
+    SSLCertificateFile      /home/vagrant/ssl/test-box.local.cert
+    SSLCertificateKeyFile   /home/vagrant/ssl/test-box.local.key
+
+    ErrorLog /vagrant/logs/apache2/www.test-box.local-error.log
+    CustomLog /vagrant/logs/apache2/www.test-box.local-access.log common
+    ServerSignature Off
+
+    SetEnv APPLICATION_ENV vagrant
+    SetEnv TYPO3_CONTEXT Development
+
+</VirtualHost>

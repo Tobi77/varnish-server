@@ -1,0 +1,129 @@
+---
+- name: Install Apache
+  sudo: yes
+  apt: pkg=apache2 state=latest
+
+- shell: apache2 -v
+  register: apache_version
+
+- name: Change default apache2.4 site
+  sudo: yes
+  template: src=vhost24.conf.tpl dest=/etc/apache2/sites-available/000-default.conf
+  notify: restart apache
+  when: apache_version.stdout.find('Apache/2.4.') != -1
+
+- name: Create main default webroot
+  file:
+    path=/vagrant/www
+    state=directory
+    mode=0755
+
+- name: Create logs folder
+  file:
+    path=/vagrant/logs/apache2
+    state=directory
+    mode=0775
+
+- name: Setting apache user/group in envvars to vagrant
+  sudo: yes
+  run_once: true
+  shell: |
+    echo '' >> /etc/apache2/envvars
+    echo '#apache2 run user/group set to vagrant by ansible' >> /etc/apache2/envvars
+    echo 'export APACHE_RUN_USER=vagrant' >> /etc/apache2/envvars
+    echo 'export APACHE_RUN_GROUP=vagrant' >> /etc/apache2/envvars
+    rm -rf /var/lock/apache2
+
+- name: Set default servername
+  sudo: yes
+  run_once: true
+  shell: |
+    echo '' >> /etc/apache2/apache2.conf
+    echo '#apache2 default servername set test-box.local by ansible' >> /etc/apache2/apache2.conf
+    echo 'ServerName test-box.local' >> /etc/apache2/apache2.conf
+
+- name: Install Apache Modules
+  apache2_module: state=present name={{ item }}
+  notify: restart apache
+  with_items:
+    - rewrite
+    - vhost_alias
+    - headers
+    - expires
+    - filter
+    - ssl
+
+- name: Enable ssl module
+  sudo: yes
+  run_once: true
+  shell: a2enmod ssl
+  notify: restart apache
+
+- name: Create wildcard ssl certificate
+  run_once: true
+  shell: |
+    cd /home/vagrant && mkdir ssl && cd ssl
+    openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj "/C=DE/ST=NRW/L=COLOGNE/O=Dis/CN=*.test-box.local" -keyout {{apache.servername}}.key -out {{apache.servername}}.cert
+
+#- lineinfile:
+#    path: /etc/apache2/ports.conf
+#    regexp: '^Listen 443'
+#    insertafter: '^Listen 443'
+#    line: 'NameVirtualHost *:443'
+
+- shell: apache2 -v
+  register: apache_version
+
+- name: Change default apache2.4 site
+  sudo: yes
+  template: src=vhost22.conf.tpl dest=/etc/apache2/sites-available/default.conf
+  notify: restart apache
+  when: apache_version.stdout.find('Apache/2.2.') != -1
+
+- name: Create web directories for each enabled VirtualHost
+  sudo: yes
+  file:
+    path=/vagrant/www/{{ item.servername }}
+    state=directory
+  with_items: "{{ projects_active }}"
+
+- name: Create a VirtualHost for cms
+  sudo: yes
+  template: src=templates/cms.conf.j2 dest=/etc/apache2/sites-available/www.test-box.local.conf
+  notify: restart apache
+
+- name: Activate all enabled vhosts
+  sudo: yes
+  shell: "a2ensite {{ item.servername }}.conf"
+  with_items: "{{ projects_active }}"
+  notify: restart apache
+  ignore_errors: true
+
+- name: Remove VirtualHost file for each disabled VirtualHost
+  file:
+    dest=/etc/apache2/sites-available/{{ item.servername }}.conf
+    state=absent
+  with_items: "{{ projects_nonactive }}"
+  ignore_errors: true
+  notify: restart apache
+
+- name: Deactivate all disabled vhosts
+  sudo: yes
+  shell: "a2dissite {{ item.servername }}.conf"
+  with_items: "{{ projects_nonactive }}"
+  ignore_errors: true
+  notify: restart apache
+
+- name: resetting gasmask snippet
+  shell: "echo '{{ vagrant_local.vm.ip}} {{ apache.servername }} <br/>' > /vagrant/www/gasmask.php"
+
+- name: creating gasmask snippet
+  shell: "echo '{{ vagrant_local.vm.ip}} {{ item.servername }} <br/>' >> /vagrant/www/gasmask.php"
+  with_items: "{{ projects_active }}"
+
+- name: Add instructions and phpinfo file
+  sudo: yes
+#  shell: rm /vagrant/www/index.php
+  copy:
+    src: templates/instructions.php
+    dest: /vagrant/www/index.php

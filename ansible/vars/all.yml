@@ -1,0 +1,27 @@
+---
+server:
+    install: '1'
+    packages: [vim, git, imagemagick, npm, nodejs, htop]
+    timezone: Europe/Berlin
+    locale: en_US.UTF-8
+vagrant_local:
+    install: '1'
+    vm: { base_box: trusty64, hostname: default, ip: 192.168.15.16, memory: '2048', sharedfolder: ./, syncType: nfs, useVagrantCloud: '0', }
+apache:
+    install: '1'
+    docroot: /vagrant/www
+    servername: test-box.local
+mysql:
+    root_password: 'root'
+    user: root
+    password: 'root'
+    dump: ''
+php:
+    install: '1'
+    ppa: php
+    packages: [php7.2, php7.2-cli, php7.2-curl, php7.2-gd, php7.2-intl, php7.2-mysql, php7.2-soap, php7.2-xdebug, php7.2-mbstring, php-mbstring, php7.2-xml, php7.2-zip, php7.2-xsl]
+xdebug:
+    install: '1'
+composer:
+    install: '1'
+
